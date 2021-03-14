@@ -4,6 +4,7 @@
 
  :dependencies
  [[reagent "1.0.0"]
+  [keybind "2.2.0"]
   [com.taoensso/timbre "5.1.2"]]
 
  :dev-http {8080 "target/"}
