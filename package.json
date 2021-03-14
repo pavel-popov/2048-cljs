@@ -1,33 +1,37 @@
 {
-   "name": "shadow-cjs-template",
+   "name": "2048",
    "version": "1.0.0",
-   "description": "A simple template for my shadow-cljs experiments",
+   "description": "Implementation of 2048 in ClojureScript",
    "main": "index.js",
    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1",
-      "tw": "tailwind build tw/style.css -- -o target/css/main.css",
-      "watch": "shadow-cljs watch app",
-      "watch:css": "onchange 'tw/*css' -- npm run tw"
+     "test": "echo \"Error: no test specified\" && exit 1",
+     "tw": "tailwind build tw/style.css -- -o target/css/main.css",
+     "watch": "shadow-cljs watch app",
+     "watch:css": "onchange 'tw/*css' -- npm run tw"
    },
    "repository": {
       "type": "git",
-      "url": "git+https://github.com/zamansky/shadow-cjs-template.git"
+      "url": "git+https://github.com/pavel-popov/2048-cljs.git"
    },
-   "keywords": [],
-   "author": "",
+   "keywords": [
+      "clojurescript",
+      "tailwind",
+      "reagent"
+   ],
+   "author": "Pavel Popov",
    "license": "ISC",
    "bugs": {
-      "url": "https://github.com/zamansky/shadow-cjs-template/issues"
+      "url": "https://github.com/pavel-popov/2048-cljs/issues"
    },
-   "homepage": "https://github.com/zamansky/shadow-cjs-template#readme",
+   "homepage": "https://github.com/pavel-popov/2048-cljs#readme",
    "devDependencies": {
-      "onchange": "^6.1.0",
-      "tailwindcss": "^1.1.4",
-      "shadow-cljs": "2.11.4"
+      "onchange": "^7.1.0",
+      "shadow-cljs": "2.11.23",
+      "tailwindcss": "^2.0.3"
    },
    "dependencies": {
-      "create-react-class": "^15.6.3",
-      "react": "^16.9.0",
-      "react-dom": "^16.9.0"
+      "autoprefixer": "^10.2.5",
+      "react": "^17.0.1",
+      "react-dom": "^17.0.1"
    }
 }

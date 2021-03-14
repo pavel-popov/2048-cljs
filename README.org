@@ -1,0 +1,50 @@
+#+TITLE: 2048 game in ClojureScript
+#+DATE: <2021-03-14 Sun>
+
+An attempt to build 2048 game in ClojureScript.
+
+* Bootstrapping
+
+We're going to need these things to start coding:
+- ClojureScript
+- Tailwind
+- CIDER for development
+
+** First attempt that didn't work
+
+Use [[https://github.com/pavel-popov/create-reagent-app][create-reagent-app]] template like this:
+
+
+#+begin_src sh :result verbatim
+clj -Sdeps '{:deps {seancorfield/clj-new {:mvn/version "1.1.264"}}}' \
+  -X clj-new/create \
+  :template '"https://github.com/pavel-popov/create-reagent-app@v0.0.1"' \
+  :name pvlpp/game2048
+#+end_src
+
+Note, make sure you don't have URL overwrite in your git configuration
+(=~/.gitconfig=, like I did, so needed to comment out this block:
+
+#+begin_example ini
+[url "ssh://git@github.com/"]
+   insteadOf = https://github.com/
+#+end_example
+
+** Second attempt using repository template
+
+I created a new repo from a template [[https://github.com/pavel-popov/shadow-cljs-template][shadow-cljs-template]] and adjusted
+packages to latest versions.
+
+To start an app for the first time so it would download all packages
+and build it run:
+
+#+begin_src sh
+
+#+end_src
+
+* Building CSS with Tailwind
+
+Production build with all unused styles removed:
+#+begin_src sh
+NODE_ENV=production npm run tw
+#+end_src
