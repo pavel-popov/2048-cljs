@@ -3,11 +3,8 @@
             [reagent.core :as r]
             [keybind.core :as key]
             [taoensso.timbre :as timbre :refer-macros [info error]]
-            [cljs.core.match :refer-macros [match]]
             [cljs.core.async :refer (chan put! <! go go-loop timeout)]))
 
-
-;; state handling
 
 (defn with-index [coll]
   (partition 2 (interleave coll (range))))
@@ -19,8 +16,7 @@
   [coll]
   (let [indexed (with-index coll)
         zeros (filter #(= 0 (first %)) indexed)
-        picked (take (inc (rand-int 3)) (sort #(compare (rand-int 100)
-                                                        (rand-int 100)) zeros))
+        picked (take (rand-int 3) (sort #(compare (rand-int 100) (rand-int 100)) zeros))
         replaced (map (fn [[_ idx]] [(bit-shift-left 1 (inc (rand-int 3))) idx]) picked)
         picked-indices (set (map second picked))
         without-picked (filter #(not (picked-indices (second %))) indexed)
@@ -117,9 +113,6 @@
   (-> field (#(merge-rows % :scorer noop-scorer)) vec))
 
 
-;; (merge-row [0 0 8 8])
-
-
 (defn mutate-state! [event payload]
   (info "Event" event "with payload" payload)
   (case event
@@ -138,12 +131,6 @@
     :down
     (swap! state update-in [:field] (comp transpose transpose transpose merge-left transpose))
 
-    :transpose
-    (swap! state update-in [:field] transpose)
-
-    :merge
-    (swap! state update-in [:field] merge)
-
     :reset
     (swap! state assoc :points 0 :field (initial-state) :lost false)
 
@@ -151,21 +138,18 @@
 
   ;; checking if there are more moves available
   (let [field (:field @state)]
-    (when (= 1 (count (set [(merge-left-noscore field)
-                            ((comp transpose merge-left-noscore transpose transpose transpose) field)
-                            ((comp transpose transpose merge-left-noscore transpose transpose) field)
-                            ((comp transpose transpose transpose merge-left-noscore transpose) field)])))
+    (when (= 1
+             (count
+              (set [(merge-left-noscore field)
+                    ((comp transpose merge-left-noscore transpose transpose transpose) field)
+                    ((comp transpose transpose merge-left-noscore transpose transpose) field)
+                    ((comp transpose transpose transpose merge-left-noscore transpose) field)])))
       (swap! state assoc :lost true))))
 
 
 (go-loop [[event payload] (<! event-queue)]
   (mutate-state! event payload)
   (recur (<! event-queue)))
-
-
-;; (with-index [1 2 3 4])
-
-;; (partition 2 (interleave [1 2 3] [3 4 5]))
 
 
 (defn cell-background [cell]
@@ -196,8 +180,6 @@
                           (cell-background cell))
               :key (str "cell-" idx)} (if (= 0 cell) "\u00A0" cell)]))]])
 
-
-;; utilities
 
 (defn main-component []
   [:div {:class "min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12"}
