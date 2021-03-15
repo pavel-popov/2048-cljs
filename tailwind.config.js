@@ -11,7 +11,7 @@ module.exports = {
   },
   purge: [
     './target/**/*.html',
-    './src/**/*.cljs',
+    './target/**/*.js'
   ],
   variants: {},
   plugins: [],
