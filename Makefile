@@ -25,9 +25,10 @@ gh-push:
 
 
 deploy:  # deploys a production build to Github Pages
-	gh-pull
+	make gh-pull
 	make build-js
 	make build-css NODE_ENV=production
+	make gh-push
 
 gh-pages:
 	git checkout -b build
