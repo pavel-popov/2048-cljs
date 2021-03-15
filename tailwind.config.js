@@ -10,8 +10,8 @@ module.exports = {
     },
   },
   purge: [
-    './target/**/*.html',
-    './target/**/*.js'
+    './target/*.html',
+    './target/*.js'
   ],
   variants: {},
   plugins: [],
