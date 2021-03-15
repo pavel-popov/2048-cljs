@@ -2,23 +2,25 @@
   (:require [reagent.dom :as r.dom]
             [reagent.core :as r]
             [keybind.core :as key]
-            [taoensso.timbre :as timbre :refer-macros [info error]]
-            [cljs.core.async :refer (chan put! <! go go-loop timeout)]))
+            [taoensso.timbre :as timbre :refer-macros [info]]
+            [cljs.core.async :refer (chan put! <! go-loop)]))
 
 
-(defn with-index [coll]
+(defn with-index
+  "Return seq with every item of COLL turned into a list with second
+  element being an index."
+  [coll]
   (partition 2 (interleave coll (range))))
 
 
 (defn sort-rand
-  "Return randomly sorted collection"
+  "Return randomly sorted collection."
   [coll]
   (sort #(compare (rand-int 100) (rand-int 100)) coll))
 
 
 (defn pop-random
-  "Replace 1, 2 or 3 zeros with
-   two, four or eight."
+  "Replace 1 or 2  zeros with two, four or eight."
   [coll]
   (let [indexed (with-index coll)
         picked (->> indexed
@@ -193,9 +195,14 @@ It's guaranteed that there will be at least one non-zero element."
    [:div {:class "grid grid-cols-4 gap-2 h-64"}
     (doall
      (for [[cell idx] (with-index cells)]
-       [:div {:class (str "rounded-md text-white text-2xl font-extrabold flex items-center justify-center py-2 "
-                          (cell-background cell))
+       [:div {:class
+              (cons (cell-background cell)
+                    [:rounded-md :text-white :text-2xl :font-extrabold :flex :items-center :justify-center :py-2])
               :key (str "cell-" idx)} (if (= 0 cell) "\u00A0" cell)]))]])
+
+
+(defn controls [dir]
+  #(put! event-queue [dir nil]))
 
 
 (defn main-component []
@@ -205,13 +212,16 @@ It's guaranteed that there will be at least one non-zero element."
     [:div {:class "relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20"}
      [:div {:class "max-w-md mx-auto"}
       [:div {:class "divide-y divide-gray-200"}
-       [:p "Points: " (:points @state) " " (when (:lost @state) [:span.font-extrabold.text-red-600 "You've lost, loser!"])]
-       [:div                            ; buttons
-        [:button {:on-click #(put! event-queue [:left nil]) :class "bg-blue-100 px-2 m-2"} "←"]
-        [:button {:on-click #(put! event-queue [:up nil]) :class "bg-blue-100 px-2 m-2"} "↑"]
-        [:button {:on-click #(put! event-queue [:down nil]) :class "bg-blue-100 px-2 m-2"} "↓"]
-        [:button {:on-click #(put! event-queue [:right nil]) :class "bg-blue-100 px-2 m-2"} "→"]
-        [:button {:on-click #(put! event-queue [:reset nil]) :class "bg-blue-100 px-2 m-2"} "reset"]]
+       [:p "Points: " (:points @state) " "
+        (when (:lost @state) [:span.font-extrabold.text-red-600 "You've lost, loser!"])]
+
+       ;; buttons
+       [:div
+        [:button {:on-click (controls :left) :class "bg-blue-100 px-2 m-2"} "←"]
+        [:button {:on-click (controls :up) :class "bg-blue-100 px-2 m-2"} "↑"]
+        [:button {:on-click (controls :down) :class "bg-blue-100 px-2 m-2"} "↓"]
+        [:button {:on-click (controls :right) :class "bg-blue-100 px-2 m-2"} "→"]
+        [:button {:on-click (controls :reset) :class "bg-blue-100 px-2 m-2"} "reset"]]
 
        [field (:field @state)]]]]]])
 
@@ -226,17 +236,17 @@ It's guaranteed that there will be at least one non-zero element."
 
 
 (defn set-keybindings! []
-  (key/bind! "h" ::left #(put! event-queue [:left nil]))
-  (key/bind! "left" ::arrow-left #(put! event-queue [:left nil]))
+  (key/bind! "h" ::left (controls :left))
+  (key/bind! "left" ::arrow-left (controls :left ))
 
-  (key/bind! "j" ::down #(put! event-queue [:down nil]))
-  (key/bind! "down" ::arrow-down #(put! event-queue [:down nil]))
+  (key/bind! "j" ::down (controls :down))
+  (key/bind! "down" ::arrow-down (controls :down))
 
-  (key/bind! "k" ::up #(put! event-queue [:up nil]))
-  (key/bind! "up" ::arrow-up #(put! event-queue [:up nil]))
+  (key/bind! "k" ::up (controls :up))
+  (key/bind! "up" ::arrow-up (controls :up))
 
-  (key/bind! "l" ::right #(put! event-queue [:right nil]))
-  (key/bind! "right" ::arrow-right #(put! event-queue [:right nil])))
+  (key/bind! "l" ::right (controls :right))
+  (key/bind! "right" ::arrow-right (controls :right)))
 
 
 (defn main! []
