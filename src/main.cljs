@@ -10,33 +10,48 @@
   (partition 2 (interleave coll (range))))
 
 
+(defn sort-rand
+  "Return randomly sorted collection"
+  [coll]
+  (sort #(compare (rand-int 100) (rand-int 100)) coll))
+
+
 (defn pop-random
   "Replace 1, 2 or 3 zeros with
    two, four or eight."
   [coll]
   (let [indexed (with-index coll)
-        zeros (filter #(= 0 (first %)) indexed)
-        picked (take (rand-int 3) (sort #(compare (rand-int 100) (rand-int 100)) zeros))
-        replaced (map (fn [[_ idx]] [(bit-shift-left 1 (inc (rand-int 3))) idx]) picked)
+        picked (->> indexed
+                    (filter #(= 0 (first %))) ; keep zeros
+                    sort-rand
+                    (take (rand-int 3)))
+        replaced (map (fn [[_ idx]] [(rand-nth [2 4 8]) idx]) picked)
         picked-indices (set (map second picked))
         without-picked (filter #(not (picked-indices (second %))) indexed)
         with-replaced (concat without-picked replaced)]
-    (->> with-replaced (sort #(compare (second %1)
-                                       (second %2))) (map first) vec)))
+
+    (->> with-replaced
+         (sort #(compare (second %1) (second %2))) ; sort by index
+         (map first)
+         vec)))
 
 
-(defn initial-state []
-  (pop-random (take 16 (repeat 0))))
+(defn initial-field
+  "Return initial field.
 
-
-;; (initial-state)
+It's guaranteed that there will be at least one non-zero element."
+  []
+  (loop []                            ; to prevent field full of zeros
+    (let [field (pop-random (take 16 (repeat 0)))]
+      (if (not= (set field) #{0})
+        field
+        (recur)))))
 
 
 (defonce state
   (r/atom {:points 0
-           :field (initial-state)
+           :field (initial-field)
            :lost false}))
-
 
 
 (def event-queue (chan))
@@ -96,11 +111,11 @@
     b0 b1 b2 b3
     c0 c1 c2 c3
     d0 d1 d2 d3] & {:keys [scorer]}]
-  (->> [(merge-row [a0 a1 a2 a3] :scorer scorer)
-        (merge-row [b0 b1 b2 b3] :scorer scorer)
-        (merge-row [c0 c1 c2 c3] :scorer scorer)
-        (merge-row [d0 d1 d2 d3] :scorer scorer)]
-       flatten))
+  (flatten
+   [(merge-row [a0 a1 a2 a3] :scorer scorer)
+    (merge-row [b0 b1 b2 b3] :scorer scorer)
+    (merge-row [c0 c1 c2 c3] :scorer scorer)
+    (merge-row [d0 d1 d2 d3] :scorer scorer)]))
 
 
 (defn merge-left
@@ -115,36 +130,38 @@
 
 (defn mutate-state! [event payload]
   (info "Event" event "with payload" payload)
+
   (case event
     :scored
     (swap! state update-in [:points] #(+ payload %))
 
-    :up
-    (swap! state update-in [:field] (comp transpose merge-left transpose transpose transpose))
-
     :left
     (swap! state update-in [:field] merge-left)
 
-    :right
-    (swap! state update-in [:field] (comp transpose transpose merge-left transpose transpose))
+    :up
+    (swap! state update-in [:field] (comp transpose merge-left transpose transpose transpose))
 
     :down
     (swap! state update-in [:field] (comp transpose transpose transpose merge-left transpose))
 
+    :right
+    (swap! state update-in [:field] (comp transpose transpose merge-left transpose transpose))
+
     :reset
-    (swap! state assoc :points 0 :field (initial-state) :lost false)
+    (swap! state assoc :points 0 :field (initial-field) :lost false)
 
     (info "Nothing to do for" event))
 
   ;; checking if there are more moves available
   (let [field (:field @state)]
-    (when (= 1
-             (count
-              (set [(merge-left-noscore field)
-                    ((comp transpose merge-left-noscore transpose transpose transpose) field)
-                    ((comp transpose transpose merge-left-noscore transpose transpose) field)
-                    ((comp transpose transpose transpose merge-left-noscore transpose) field)])))
-      (swap! state assoc :lost true))))
+    (when
+        (= 1
+           (count
+            (set [(merge-left-noscore field)
+                  ((comp transpose merge-left-noscore transpose transpose transpose) field)
+                  ((comp transpose transpose merge-left-noscore transpose transpose) field)
+                  ((comp transpose transpose transpose merge-left-noscore transpose) field)])))
+        (swap! state assoc :lost true))))
 
 
 (go-loop [[event payload] (<! event-queue)]

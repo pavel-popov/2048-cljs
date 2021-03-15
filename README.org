@@ -39,7 +39,7 @@ To start an app for the first time so it would download all packages
 and build it run:
 
 #+begin_src sh
-
+npm install
 #+end_src
 
 * Building CSS with Tailwind
