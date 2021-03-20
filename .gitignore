@@ -2,3 +2,4 @@
 node_modules/
 target/cljs-runtime/
 target/manifest.edn
+target/main.js
