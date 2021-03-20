@@ -27,7 +27,7 @@
                     (filter #(= 0 (first %))) ; keep zeros
                     sort-rand
                     (take (rand-int 3)))
-        replaced (map (fn [[_ idx]] [(rand-nth [2 4 8]) idx]) picked)
+        replaced (map (fn [[_ idx]] [(rand-nth [2 4]) idx]) picked)
         picked-indices (set (map second picked))
         without-picked (filter #(not (picked-indices (second %))) indexed)
         with-replaced (concat without-picked replaced)]
