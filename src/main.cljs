@@ -155,15 +155,13 @@ It's guaranteed that there will be at least one non-zero element."
     (info "Nothing to do for" event))
 
   ;; checking if there are more moves available
-  (let [field (:field @state)]
-    (when
-        (= 1
-           (count
-            (set [(merge-left-noscore field)
-                  ((comp transpose merge-left-noscore transpose transpose transpose) field)
-                  ((comp transpose transpose merge-left-noscore transpose transpose) field)
-                  ((comp transpose transpose transpose merge-left-noscore transpose) field)])))
-        (swap! state assoc :lost true))))
+  (when (-> (:field @state)
+            ((juxt merge-left-noscore
+                   (comp transpose merge-left-noscore transpose transpose transpose)
+                   (comp transpose transpose merge-left-noscore transpose transpose)
+                   (comp transpose transpose transpose merge-left-noscore transpose)))
+            set count (= 1))
+    (swap! state assoc :lost true)))
 
 
 (go-loop [[event payload] (<! event-queue)]
