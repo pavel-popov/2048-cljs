@@ -13,19 +13,13 @@
   (partition 2 (interleave coll (range))))
 
 
-(defn sort-rand
-  "Return randomly sorted collection."
-  [coll]
-  (sort #(compare (rand-int 100) (rand-int 100)) coll))
-
-
 (defn pop-random
   "Replace 1 or 2  zeros with two, four or eight."
   [coll]
   (let [indexed (with-index coll)
         picked (->> indexed
                     (filter #(= 0 (first %))) ; keep zeros
-                    sort-rand
+                    shuffle
                     (take (rand-int 3)))
         replaced (map (fn [[_ idx]] [(rand-nth [2 4]) idx]) picked)
         picked-indices (set (map second picked))
@@ -122,7 +116,13 @@ It's guaranteed that there will be at least one non-zero element."
 
 (defn merge-left
   [field]
-  (-> field merge-rows pop-random vec))
+  (let [new-field (merge-rows field)]
+    (if (= field new-field)
+      field
+      (-> new-field pop-random vec))))
+
+(defn abs [x]
+  (if (> x 0) x (* -1 x)))
 
 
 (defn merge-left-noscore
@@ -134,6 +134,24 @@ It's guaranteed that there will be at least one non-zero element."
   (info "Event" event "with payload" payload)
 
   (case event
+    :touch-start
+    (swap! state assoc :touch payload)
+
+    :touch-end
+    (let [[start-x start-y] (:touch @state)
+          [end-x end-y] payload
+          limit 75
+          width (- start-x end-x)
+          height (- start-y end-y)]
+      (info "width:" width "height:" height)
+      (cond
+        (and (-> width abs (> limit)) (-> height abs (> limit))) nil
+        (> width limit) (put! event-queue [:left])
+        (> (- limit) width) (put! event-queue [:right])
+        (> (- limit) height) (put! event-queue [:down])
+        (> height 100) (put! event-queue [:up])
+        :else nil))
+
     :scored
     (swap! state update-in [:points] #(+ payload %))
 
@@ -188,8 +206,16 @@ It's guaranteed that there will be at least one non-zero element."
     "bg-green-500"))
 
 
+(defn get-touch [ev]
+  (let [touch (-> ev .-changedTouches first)]
+    [(.-clientX touch) (.-clientY touch)]))
+
+
 (defn field [cells]
-  [:div {:class "rounded-t-xl overflow-hidden bg-gradient-to-r from-indigo-50 to-yellow-100 p-2"}
+  [:div {:class "rounded-t-xl overflow-hidden bg-gradient-to-r from-indigo-50 to-yellow-100 p-2"
+         :on-touch-start #(put! event-queue [:touch-start (get-touch %)])
+         :on-touch-end #(put! event-queue [:touch-end (get-touch %)])
+         :style {:touch-action "none"}}
    [:div {:class "grid grid-cols-4 gap-2 h-64"}
     (doall
      (for [[cell idx] (with-index cells)]
@@ -203,8 +229,9 @@ It's guaranteed that there will be at least one non-zero element."
   #(put! event-queue [dir nil]))
 
 
+
 (defn main-component []
-  [:div {:class "min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12"}
+  [:div {:class "min-h-screen bg-gray-100 flex flex-col justify-center"}
    [:div {:class "relative py-3 sm:max-w-xl sm:mx-auto"}
     [:div {:class "absolute inset-0 bg-gradient-to-r from-cyan-400 to-light-blue-500 shadow-lg transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"}]
     [:div {:class "relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20"}
@@ -224,15 +251,6 @@ It's guaranteed that there will be at least one non-zero element."
        [field (:field @state)]]]]]])
 
 
-(defn mount [c]
-  (r.dom/render [c] (.getElementById js/document "app")))
-
-
-(defn reload! []
-  (mount main-component)
-  (print "Hello reload!"))
-
-
 (defn set-keybindings! []
   (key/bind! "h" ::left (controls :left))
   (key/bind! "left" ::arrow-left (controls :left ))
@@ -245,6 +263,15 @@ It's guaranteed that there will be at least one non-zero element."
 
   (key/bind! "l" ::right (controls :right))
   (key/bind! "right" ::arrow-right (controls :right)))
+
+
+(defn mount [c]
+  (r.dom/render [c] (.getElementById js/document "app")))
+
+
+(defn reload! []
+  (mount main-component)
+  (print "Hello reload!"))
 
 
 (defn main! []
