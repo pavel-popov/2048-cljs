@@ -20,14 +20,14 @@
 
 
 (defn pop-random
-  "Replace 1 or 2  zeros with two, four or eight."
+  "Replace 1 or 2 zeros with two, four or eight."
   [coll]
   (let [indexed (with-index coll)
         picked (->> indexed
                     (filter #(= 0 (first %))) ; keep zeros
                     sort-rand
                     (take (rand-int 3)))
-        replaced (map (fn [[_ idx]] [(rand-nth [2 4 8]) idx]) picked)
+        replaced (map (fn [[_ idx]] [(rand-nth [2 4]) idx]) picked)
         picked-indices (set (map second picked))
         without-picked (filter #(not (picked-indices (second %))) indexed)
         with-replaced (concat without-picked replaced)]
@@ -53,7 +53,8 @@ It's guaranteed that there will be at least one non-zero element."
 (defonce state
   (r/atom {:points 0
            :field (initial-field)
-           :lost false}))
+           :lost false
+           :pressed nil}))
 
 
 (def event-queue (chan))
@@ -122,7 +123,10 @@ It's guaranteed that there will be at least one non-zero element."
 
 (defn merge-left
   [field]
-  (-> field merge-rows pop-random vec))
+  (let [next (merge-rows field)]
+    (if (= next field)
+      field
+      (pop-random next ))))
 
 
 (defn merge-left-noscore
@@ -149,8 +153,11 @@ It's guaranteed that there will be at least one non-zero element."
     :right
     (swap! state update-in [:field] (comp transpose transpose merge-left transpose transpose))
 
+    :pressed
+    (swap! state assoc :pressed payload)
+
     :reset
-    (swap! state assoc :points 0 :field (initial-field) :lost false)
+    (swap! state assoc :points 0 :field (initial-field) :lost false :pressed nil)
 
     (info "Nothing to do for" event))
 
@@ -202,8 +209,20 @@ It's guaranteed that there will be at least one non-zero element."
 
 
 (defn controls [dir]
-  #(put! event-queue [dir nil]))
+  #(do
+     (put! event-queue [:pressed dir])
+     (put! event-queue [dir nil])))
 
+
+(defn button [pressed direction symbol]
+  (let [classes [:px-2 :m-2]
+        non-pressed-class :bg-blue-100
+        pressed-class :bg-green-200]
+    [:button {:on-click (controls direction)
+              :class (cons (if (= pressed direction)
+                             pressed-class
+                             non-pressed-class)
+                           classes)} symbol]))
 
 (defn main-component []
   [:div {:class "min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12"}
@@ -213,15 +232,19 @@ It's guaranteed that there will be at least one non-zero element."
      [:div {:class "max-w-md mx-auto"}
       [:div {:class "divide-y divide-gray-200"}
        [:p "Points: " (:points @state) " "
-        (when (:lost @state) [:span.font-extrabold.text-red-600 "You've lost, loser!"])]
+        (when (:lost @state) [:span.font-extrabold.text-red-600 "You've lost!"])]
 
        ;; buttons
-       [:div
-        [:button {:on-click (controls :left) :class "bg-blue-100 px-2 m-2"} "←"]
-        [:button {:on-click (controls :up) :class "bg-blue-100 px-2 m-2"} "↑"]
-        [:button {:on-click (controls :down) :class "bg-blue-100 px-2 m-2"} "↓"]
-        [:button {:on-click (controls :right) :class "bg-blue-100 px-2 m-2"} "→"]
-        [:button {:on-click (controls :reset) :class "bg-blue-100 px-2 m-2"} "reset"]]
+       (let [pressed (:pressed @state)
+             classes [:px-2 :m-2]
+             non-pressed-class :bg-blue-100
+             pressed-class :bg-blue-200]
+         [:div
+          [button (:pressed @state) :left "←"]
+          [button (:pressed @state) :up "↑"]
+          [button (:pressed @state) :down "↓"]
+          [button (:pressed @state) :right "→"]
+          [button (:pressed @state) :reset "reset"]])
 
        [field (:field @state)]]]]]])
 
@@ -238,15 +261,19 @@ It's guaranteed that there will be at least one non-zero element."
 (defn set-keybindings! []
   (key/bind! "h" ::left (controls :left))
   (key/bind! "left" ::arrow-left (controls :left ))
+  (key/bind! "a" ::arrow-left (controls :left ))
 
   (key/bind! "j" ::down (controls :down))
   (key/bind! "down" ::arrow-down (controls :down))
+  (key/bind! "s" ::arrow-down (controls :down))
 
   (key/bind! "k" ::up (controls :up))
   (key/bind! "up" ::arrow-up (controls :up))
+  (key/bind! "w" ::arrow-up (controls :up))
 
   (key/bind! "l" ::right (controls :right))
-  (key/bind! "right" ::arrow-right (controls :right)))
+  (key/bind! "right" ::arrow-right (controls :right))
+  (key/bind! "d" ::arrow-right (controls :right)))
 
 
 (defn main! []
